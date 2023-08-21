@@ -13,23 +13,21 @@ protocol LoginViewModelDelegate {
 
 struct LoginViewModel {
     var delegate : LoginViewModelDelegate?
+    let validation = LoginValidation()
+    let loginResource = LoginResource()
     
-    func loginUser(loginRequest: LoginRequest) {
-        let validationResult = LoginValidation().Validate(loginRequest: loginRequest)
-        
-        if(validationResult.success) {
-            //use loginResource to call login API
-            let loginResource = LoginResource()
-            loginResource.loginUser(loginRequest: loginRequest) { (loginApiResponse) in
-                if(loginApiResponse?.errorMessage == nil && loginApiResponse?.data != nil) {
-                    UserDefaultUtility().saveUser(user: (loginApiResponse?.data)!)
-                }
-                //return the response we get from loginResource
-                DispatchQueue.main.async {
-                    self.delegate?.didReceiveLoginResponse(loginResponse: loginApiResponse)
+    func authenticateUser(request: LoginRequest, completionHandler: @escaping(_ loginData: LoginData?)->()) {
+        let validationResult = validation.validate(request: request)
+        if(validationResult.isValid) {
+            loginResource.authenticateUser(request: request) { (response) in
+                if response?.errorMessage == nil && response?.data != nil {
+                    UserDefaultUtility().saveUser(user: (response?.data)!)
+                    completionHandler(LoginData(errorMessage: nil, response: response))
                 }
             }
+        }else{
+            completionHandler(LoginData(errorMessage: validationResult.message, response: nil))
         }
-        self.delegate?.didReceiveLoginResponse(loginResponse: LoginResponse(errorMessage: validationResult.error, data: nil))
+        self.delegate?.didReceiveLoginResponse(loginResponse: LoginResponse(errorMessage: validationResult.message, data: nil))
     }
 }

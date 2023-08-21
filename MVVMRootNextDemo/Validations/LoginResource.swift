@@ -8,35 +8,35 @@
 import Foundation
 
 struct LoginResource {
-    func loginUser(loginRequest: LoginRequest, completion: @escaping (_ result: LoginResponse?) -> Void) {
-        let loginUrl = URL(string: ApiEndpoints.login)!
-        let httpUtility = HttpUtility()
+    
+    let loginUrl = URL(string: ApiEndpoints.login)!
+    
+    func authenticateUser(request: LoginRequest, completionHandler: @escaping(_ result: LoginResponse?)->()) {
+        let urlRequest = generateLoginUrlRequest(request: request)
+        URLSession.shared.dataTask(with: urlRequest) { (responseData, serverResponse, serverError) in
+            if(serverError == nil && responseData != nil){
+                do {
+                    let result = try JSONDecoder().decode(LoginResponse.self, from: responseData!)
+                    completionHandler(result)
+                } catch  {
+                    debugPrint("Encoding request body failed")
+                }
+            }
+        }.resume()
+    }
+    
+    private func generateLoginUrlRequest(request: LoginRequest) -> URLRequest {
+        var urlRequest = URLRequest(url: URL(string: ApiEndpoints.login)!)
+        urlRequest.httpMethod = "post"
         
         do {
-            let loginPostBody = try JSONEncoder().encode(loginRequest)
-            httpUtility.postApiData(requestUrl: loginUrl, requestBody: loginPostBody, resultType: LoginResponse.self) { (loginApiResponse) in
-                completion(loginApiResponse)
-            }
-        } catch let error {
-            debugPrint(error)
-        }
-    }
-}
-
-struct LoginValidation {
-    func Validate(loginRequest: LoginRequest) -> ValidationResult {
-        if loginRequest.userEmail!.isEmpty {
-            return ValidationResult(success: false, error: "User email is empty")
+            urlRequest.httpBody = try JSONEncoder().encode(request)
+        } catch  {
+            debugPrint("Encoding request body failed")
         }
         
-        if loginRequest.userPassword!.isEmpty {
-            return ValidationResult(success: false, error: "User password is empty")
-        }
-        return ValidationResult(success: true, error: nil)
+        urlRequest.addValue("application/json", forHTTPHeaderField: "content-type")
+        return urlRequest
     }
-}
 
-struct ValidationResult {
-    let success: Bool
-    let error : String?
 }

@@ -23,7 +23,3 @@ struct LoginResponseData: Codable {
         case email
     }
 }
-
-struct LoginRequest: Encodable {
-    var userEmail, userPassword: String?
-}

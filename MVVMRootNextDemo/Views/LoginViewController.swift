@@ -22,8 +22,14 @@ class LoginViewController: UIViewController {
 
     // MARK: - Login button tapped
     @IBAction func didTapOnLoginButton(_ sender: Any) {
-        let request = LoginRequest(userEmail: userName.text, userPassword: password.text)
-        loginViewModel.loginUser(loginRequest: request)
+        let request = LoginRequest(userEmail: userName.text!, userPassword: password.text!)
+        loginViewModel.authenticateUser(request: request) { loginData in
+            if loginData?.errorMessage == nil && loginData?.response?.data != nil {
+                DispatchQueue.main.async {
+                    self.didReceiveLoginResponse(loginResponse: loginData?.response)
+                }
+            }
+        }
     }
     
 }
